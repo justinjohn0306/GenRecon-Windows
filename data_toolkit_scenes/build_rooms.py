@@ -32,9 +32,14 @@ from tqdm import tqdm
 
 BLENDER_SCRIPT = "data_toolkit_scenes/blender_scripts/build_rooms.py"
 
-BLENDER_LINK = "https://ftp.halifax.rwth-aachen.de/blender/release/Blender5.0/blender-5.0.1-linux-x64.tar.xz"
-BLENDER_INSTALLATION_PATH = "/tmp"
-BLENDER_PATH = f"{BLENDER_INSTALLATION_PATH}/blender-5.0.1-linux-x64/blender"
+import os
+
+if os.name == "nt":
+    BLENDER_PATH = r"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe"
+else:
+    BLENDER_LINK = "https://ftp.halifax.rwth-aachen.de/blender/release/Blender5.0/blender-5.0.1-linux-x64.tar.xz"
+    BLENDER_INSTALLATION_PATH = "/tmp"
+    BLENDER_PATH = f"{BLENDER_INSTALLATION_PATH}/blender-5.0.1-linux-x64/blender"
 
 
 def _install_blender():
@@ -136,9 +141,10 @@ def main() -> None:
     ap.add_argument("--only", nargs="*", default=None, help="Only process these scene_ids.")
     args = ap.parse_args()
 
-    # install blender
-    print("Checking blender...", flush=True)
-    _install_blender()
+    print("Checking blender...")
+
+    if os.name != "nt":
+        _install_blender()
 
     if args.world_size < 1:
         raise SystemExit("--world_size must be >= 1")

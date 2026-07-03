@@ -20,8 +20,8 @@ torch::Tensor encode_sparse_voxel_octree_attr_neighbor_cpu(
     const uint32_t res,
     const torch::Tensor& attr
 ) {
-    size_t N = coord.size(0);
-    size_t C = attr.size(1);
+    int64_t N = static_cast<int64_t>(coord.size(0));
+    int64_t C = static_cast<int64_t>(attr.size(1));
     int* coord_data = coord.data_ptr<int>();
     uint8_t* attr_data = attr.data_ptr<uint8_t>();
     std::vector<uint8_t> buffer(res * res * res * (C + 1), 0);
@@ -106,8 +106,8 @@ torch::Tensor decode_sparse_voxel_octree_attr_neighbor_cpu(
     const uint32_t res,
     const torch::Tensor& delta
 ) {
-    size_t N = coord.size(0);
-    size_t C = delta.size(1);
+    int64_t N = static_cast<int64_t>(coord.size(0));
+    int64_t C = static_cast<int64_t>(delta.size(1));
     int* coord_data = coord.data_ptr<int>();
     uint8_t* delta_data = delta.data_ptr<uint8_t>();
     std::vector<uint8_t> buffer(res * res * res * (C + 1), 0);

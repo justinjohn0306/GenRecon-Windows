@@ -66,8 +66,8 @@ class SparseFlowMatchingTrainer(FlowMatchingTrainer):
             num_workers=self.num_workers_per_gpu,
             pin_memory=True,
             drop_last=True,
-            persistent_workers=True,
-            timeout=120,
+            persistent_workers=self.num_workers_per_gpu > 0,
+            timeout=120 if self.num_workers_per_gpu > 0 else 0,
             collate_fn=functools.partial(self.dataset.collate_fn, split_size=self.batch_split),
             sampler=self.data_sampler,
         )
@@ -87,8 +87,8 @@ class SparseFlowMatchingTrainer(FlowMatchingTrainer):
                 num_workers=self.num_workers_per_gpu,
                 pin_memory=True,
                 drop_last=False,
-                persistent_workers=True,
-                timeout=120,
+                persistent_workers=self.num_workers_per_gpu > 0,
+                timeout=120 if self.num_workers_per_gpu > 0 else 0,
                 collate_fn=functools.partial(self.val_dataset.collate_fn),
                 sampler=self.val_data_sampler,
             )

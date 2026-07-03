@@ -17,12 +17,14 @@ from __future__ import annotations
 
 import argparse
 import csv
-import fcntl
 import json
 import math
 import os
 import subprocess
 import sys
+
+if os.name != "nt":
+    import fcntl
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union
@@ -31,9 +33,12 @@ from tqdm import tqdm
 
 BLENDER_SCRIPT = "data_toolkit_scenes/blender_scripts/render_rooms.py"
 
-BLENDER_LINK = "https://ftp.halifax.rwth-aachen.de/blender/release/Blender5.0/blender-5.0.1-linux-x64.tar.xz"
-BLENDER_INSTALLATION_PATH = "/tmp"
-BLENDER_PATH = f"{BLENDER_INSTALLATION_PATH}/blender-5.0.1-linux-x64/blender"
+if os.name == "nt":
+    BLENDER_PATH = r"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe"
+else:
+    BLENDER_LINK = "https://ftp.halifax.rwth-aachen.de/blender/release/Blender5.0/blender-5.0.1-linux-x64.tar.xz"
+    BLENDER_INSTALLATION_PATH = "/tmp"
+    BLENDER_PATH = f"{BLENDER_INSTALLATION_PATH}/blender-5.0.1-linux-x64/blender"
 
 METADATA_FIELDS = [
     "sha256",
@@ -199,7 +204,8 @@ def merge_metadata_shards(out_root: Path) -> int:
     new_records_dir.mkdir(parents=True, exist_ok=True)
 
     with lock_path.open("a", encoding="utf-8") as lock_file:
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        if os.name != "nt":
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
 
         existing_rows = _read_csv_records(metadata_csv)
         shard_rows: List[Dict[str, str]] = []
@@ -217,7 +223,8 @@ def merge_metadata_shards(out_root: Path) -> int:
         merged_rows = [merged_by_sha[k] for k in sorted(merged_by_sha)]
         _atomic_write_csv(metadata_csv, merged_rows)
 
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        if os.name != "nt":
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
     return len(merged_rows)
 
@@ -285,7 +292,9 @@ def main() -> None:
 
     # install blender
     print("Checking blender...", flush=True)
-    _install_blender()
+
+    if os.name != "nt":
+        _install_blender()
 
     blender_exe = Path(BLENDER_PATH)
     blender_script = Path(BLENDER_SCRIPT)

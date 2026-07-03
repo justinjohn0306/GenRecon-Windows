@@ -12,9 +12,12 @@ from tqdm import tqdm
 
 BLENDER_SCRIPT = Path(__file__).parent / "blender_scripts" / "create_chunks.py"
 
-BLENDER_LINK = "https://ftp.halifax.rwth-aachen.de/blender/release/Blender5.0/blender-5.0.1-linux-x64.tar.xz"
-BLENDER_INSTALLATION_PATH = "/tmp"
-BLENDER_PATH = f"{BLENDER_INSTALLATION_PATH}/blender-5.0.1-linux-x64/blender"
+if os.name == "nt":
+    BLENDER_PATH = r"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe"
+else:
+    BLENDER_LINK = "https://ftp.halifax.rwth-aachen.de/blender/release/Blender5.0/blender-5.0.1-linux-x64.tar.xz"
+    BLENDER_INSTALLATION_PATH = "/tmp"
+    BLENDER_PATH = f"{BLENDER_INSTALLATION_PATH}/blender-5.0.1-linux-x64/blender"
 
 
 def _install_blender():
@@ -155,8 +158,9 @@ def main() -> None:
 
     # install blender
     print("Checking blender...", flush=True)
-    _install_blender()
 
+    if os.name != "nt":
+        _install_blender()
     if args.world_size < 1:
         raise SystemExit("--world_size must be >= 1")
     if not (0 <= args.rank < args.world_size):
