@@ -31,6 +31,8 @@ We introduce a new approach to high-fidelity 3D scene reconstruction from multi-
 
 ## 🛠️ Installation
 
+### Linux
+
 1. Clone the repo:
 ```sh
 git clone -b main https://github.com/kasothaphie/GenRecon.git --recursive
@@ -77,6 +79,81 @@ pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.
 ```
 </details>
 
+### Windows
+
+The setup script is Linux-only, so on Windows the environment is created manually.
+A Windows-adapted fork is maintained at
+[justinjohn0306/GenRecon-Windows](https://github.com/justinjohn0306/GenRecon-Windows).
+
+**Prerequisites**
+
+- [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) with the *Desktop development with C++* workload (or the Build Tools)
+- [CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-toolkit-archive) (the installer sets `%CUDA_PATH%`)
+- [Miniconda / Anaconda](https://docs.conda.io/en/latest/miniconda.html) and git
+
+Run all of the following from the **x64 Native Tools Command Prompt for VS 2022**
+(so `cl.exe` is on `PATH` for the CUDA extension builds).
+
+1. Clone the repo:
+```bat
+git clone -b main https://github.com/justinjohn0306/GenRecon-Windows.git --recursive
+cd GenRecon-Windows
+```
+
+2. Create the environment and install PyTorch:
+```bat
+conda create -n genrecon python=3.10 -y
+conda activate genrecon
+pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
+```
+
+3. Install the basic dependencies:
+```bat
+pip install imageio imageio-ffmpeg tqdm easydict opencv-python-headless ninja trimesh transformers==4.57.3 gradio==6.0.1 tensorboard pandas lpips zstandard
+pip install git+https://github.com/EasternJournalist/utils3d.git@9a4eb15e4021b67b12c460c7057d642626897ec8
+pip install pillow-simd
+pip install kornia timm
+```
+
+4. Install Flash-Attention from a prebuilt Windows wheel — building it from source
+on Windows is impractical. Pick the wheel matching your Python/torch/CUDA from
+[mjun0812/flash-attention-prebuild-wheels](https://github.com/mjun0812/flash-attention-prebuild-wheels)
+(browsable index [here](https://mjunya.com/flash-attention-prebuild-wheels/)) and
+`pip install` its URL.
+
+5. Set up the build environment for the CUDA extensions:
+```bat
+set DISTUTILS_USE_SDK=1
+set CUDA_HOME=%CUDA_PATH%
+set CUDACXX=%CUDA_PATH%\bin\nvcc.exe
+set TORCH_CUDA_ARCH_LIST=8.6
+```
+Adjust `TORCH_CUDA_ARCH_LIST` for your GPU (e.g. `8.6` for RTX 30xx, `8.9` for RTX 40xx, `12.0` for RTX 50xx).
+
+6. Build and install the CUDA extensions:
+```bat
+git clone -b v0.4.0 https://github.com/NVlabs/nvdiffrast.git
+pip install .\nvdiffrast --no-build-isolation
+
+git clone -b renderutils https://github.com/JeffreyXiang/nvdiffrec.git
+pip install .\nvdiffrec --no-build-isolation
+
+git clone --recursive https://github.com/JeffreyXiang/FlexGEMM.git
+pip install .\FlexGEMM --no-build-isolation
+
+pip install .\o-voxel --no-build-isolation
+```
+
+7. Build CuMesh. Its sources require the MSVC standards-conforming preprocessor,
+so pass `/Zc:preprocessor` to the compiler for this build:
+```bat
+set CL=/Zc:preprocessor
+set CXXFLAGS=/Zc:preprocessor
+
+git clone --recursive https://github.com/JeffreyXiang/CuMesh.git
+pip install .\CuMesh --no-build-isolation
+```
+
 ## 🗂️ Data
 
 We are grateful to the authors of the following datasets, whose data made this work
@@ -112,6 +189,11 @@ Before training, we need to render the 3D indoor scenes, create chunks, convert 
 Please refer to [data_toolkit_scenes/README.md](data_toolkit_scenes/README.md) for detailed instructions.
 
 
+The commands below are for Linux shells. On Windows (cmd), first set the data root
+with forward slashes, e.g. `set DATA_ROOT=E:/REPOS/GenRecon/dataset`, then use the
+Windows variant given under each command (`%DATA_ROOT%` instead of `${DATA_ROOT}`,
+`^` instead of `\` for line continuations).
+
 ### Sparse Structure
 
 ```sh
@@ -121,6 +203,18 @@ python train.py \
     --data_dir "{\"SAGE\": {\"base\": \"${DATA_ROOT}/SAGE\", \"ss_latent\": \"${DATA_ROOT}/SAGE/ss_latents/ss_enc_conv3d_16l8_fp16_64\"}}" \
     --val_data_dir "{\"SAGE\": {\"base\": \"${DATA_ROOT}/SAGE_val\", \"ss_latent\": \"${DATA_ROOT}/SAGE_val/ss_latents/ss_enc_conv3d_16l8_fp16_64\"}}"
 ```
+
+<details>
+<summary>Windows</summary>
+
+```bat
+python train.py ^
+    --config configs/gen/ss_flow_img/genrecon.json ^
+    --output_dir results/ss_gen ^
+    --data_dir "{\"SAGE\": {\"base\": \"%DATA_ROOT%/SAGE\", \"ss_latent\": \"%DATA_ROOT%/SAGE/ss_latents/ss_enc_conv3d_16l8_fp16_64\"}}" ^
+    --val_data_dir "{\"SAGE\": {\"base\": \"%DATA_ROOT%/SAGE_val\", \"ss_latent\": \"%DATA_ROOT%/SAGE_val/ss_latents/ss_enc_conv3d_16l8_fp16_64\"}}"
+```
+</details>
 
 ### Shape SLat
 
@@ -132,6 +226,18 @@ python train.py \
     --val_data_dir "{\"SAGE\": {\"base\": \"${DATA_ROOT}/SAGE_val\", \"shape_latent\": \"${DATA_ROOT}/SAGE_val/shape_latents/shape_enc_next_dc_f16c32_fp16_512\"}}"
 ```
 
+<details>
+<summary>Windows</summary>
+
+```bat
+python train.py ^
+    --config configs/gen/slat_flow_img2shape/genrecon_512.json ^
+    --output_dir results/shape_gen ^
+    --data_dir "{\"SAGE\": {\"base\": \"%DATA_ROOT%/SAGE\", \"shape_latent\": \"%DATA_ROOT%/SAGE/shape_latents/shape_enc_next_dc_f16c32_fp16_512\"}}" ^
+    --val_data_dir "{\"SAGE\": {\"base\": \"%DATA_ROOT%/SAGE_val\", \"shape_latent\": \"%DATA_ROOT%/SAGE_val/shape_latents/shape_enc_next_dc_f16c32_fp16_512\"}}"
+```
+</details>
+
 ### Texture SLat
 
 ```sh
@@ -142,6 +248,18 @@ python train.py \
     --val_data_dir "{\"SAGE\": {\"base\": \"${DATA_ROOT}/SAGE_val\", \"shape_latent\": \"${DATA_ROOT}/SAGE_val/shape_latents/shape_enc_next_dc_f16c32_fp16_512\", \"pbr_latent\": \"${DATA_ROOT}/SAGE_val/pbr_latents/tex_enc_next_dc_f16c32_fp16_512\"}}"
 
 ```
+
+<details>
+<summary>Windows</summary>
+
+```bat
+python train.py ^
+    --config configs/gen/slat_flow_imgshape2tex/genrecon_512.json ^
+    --output_dir results/tex_gen ^
+    --data_dir "{\"SAGE\": {\"base\": \"%DATA_ROOT%/SAGE\", \"shape_latent\": \"%DATA_ROOT%/SAGE/shape_latents/shape_enc_next_dc_f16c32_fp16_512\", \"pbr_latent\": \"%DATA_ROOT%/SAGE/pbr_latents/tex_enc_next_dc_f16c32_fp16_512\"}}" ^
+    --val_data_dir "{\"SAGE\": {\"base\": \"%DATA_ROOT%/SAGE_val\", \"shape_latent\": \"%DATA_ROOT%/SAGE_val/shape_latents/shape_enc_next_dc_f16c32_fp16_512\", \"pbr_latent\": \"%DATA_ROOT%/SAGE_val/pbr_latents/tex_enc_next_dc_f16c32_fp16_512\"}}"
+```
+</details>
 
 ## 🚀 Inference
 
